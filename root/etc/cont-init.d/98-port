@@ -5,7 +5,7 @@ chown abc:abc /utils/port.sh
 crontab -u abc -r
 
 while true; do
-    PORT=$(curl -s localhost:8000/openvpn/portforwarded| jq -r '.port')
+    PORT=$(curl -s localhost:8000/v1/openvpn/portforwarded| jq -r '.port')
     if [[ ! -z $PORT && $PORT -ne 0 ]]; then
         break
     fi
