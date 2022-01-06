@@ -5,12 +5,14 @@ chown abc:abc /utils/port.sh
 crontab -u abc -r
 
 while true; do
-    PORT=$(curl -s localhost:8000/v1/openvpn/portforwarded| jq -r '.port')
-    if [[ ! -z $PORT && $PORT -ne 0 ]]; then
-        break
-    fi
-    echo "Waiting for port"
-    sleep 10
+    FILE=/gluetun/tmp/forwarded_port
+	if [[ -f "$FILE" ]]; then
+		PORT=$(cat $FILE)
+		if [[ ! -z $PORT && $PORT -ne 0 ]]; then
+			break
+		fi
+	fi
+	sleep 10
 done
 
 echo "Received port: $PORT"
@@ -19,4 +21,4 @@ chmod 777 /config/settings.json
 sed -i "/peer-port\"/c\    \"peer-port\": $PORT," /config/settings.json
 
 echo "Enabling port crontab"
-(crontab -u abc -l; echo "*/10 * * * * /utils/port.sh 2>&1") | crontab -u abc -
+crontab -l | { cat; echo "*/10 0 0 0 0 /utils/port.sh 2>&1"; } | crontab -

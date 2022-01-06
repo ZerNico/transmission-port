@@ -1,4 +1,9 @@
 #!/usr/bin/with-contenv bash
 
-PORT=$(curl -s localhost:8000/v1/openvpn/portforwarded | jq -r '.port')
-transmission-remote --auth $USER:$PASS --port $PORT > /dev/null
+FILE=/gluetun/tmp/forwarded_port
+if [[ -f "$FILE" ]]; then
+  PORT=$(cat $FILE)
+  if [[ ! -z $PORT && $PORT -ne 0 ]]; then
+    transmission-remote --auth $USER:$PASS --port $PORT > /dev/null
+  fi
+fi
