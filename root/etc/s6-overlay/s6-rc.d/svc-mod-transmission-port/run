@@ -1,0 +1,24 @@
+#!/usr/bin/with-contenv bash
+
+while true; do
+    gluetun_port=$(curl -s localhost:8000/v1/openvpn/portforwarded | jq -r '.port')
+
+    if [ -z "$gluetun_port" ]; then
+        echo "No port found, sleeping for 10 seconds"
+        sleep 10
+        continue
+    fi
+
+    transmission_port=$(transmission-remote -si | grep "Listenport:" | awk '{print $2}')
+
+    if [ "$transmission_port" == "$gluetun_port" ]; then
+        echo "Transmission port is already $gluetun_port"
+        sleep 60
+        continue
+    fi
+    
+    transmission-remote --auth $USER:$PASS --port $gluetun_port --torrent all --reannounce 2>&1
+    echo "Transmission port updated to $gluetun_port"
+
+    sleep 60
+done
