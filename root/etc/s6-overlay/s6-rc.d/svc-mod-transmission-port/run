@@ -1,15 +1,35 @@
 #!/usr/bin/with-contenv bash
 
 while true; do
-    gluetun_port=$(curl -s localhost:8000/v1/openvpn/portforwarded | jq -r '.port')
-
-    if [ -z "$gluetun_port" ]; then
-        echo "No port found, sleeping for 10 seconds"
+    gluetun_response=$(curl -s localhost:8000/v1/openvpn/portforwarded)
+    if [ $? -ne 0 ]; then
+        echo "Failed to reach Gluetun API"
         sleep 10
         continue
     fi
 
-    transmission_port=$(transmission-remote -si | grep "Listenport:" | awk '{print $2}')
+    gluetun_port=$(echo "$gluetun_response" | jq -r '.port')
+
+    if [ -z "$gluetun_port" ] || [ "$gluetun_port" == "null" ] || [ "$gluetun_port" == "0" ]; then
+        echo "No valid port from Gluetun (got: $gluetun_port), retrying in 10 seconds"
+        sleep 10
+        continue
+    fi
+
+    si_output=$(transmission-remote --auth $USER:$PASS -si 2>&1)
+    if [ $? -ne 0 ]; then
+        echo "Failed to query Transmission: $si_output"
+        sleep 10
+        continue
+    fi
+
+    transmission_port=$(echo "$si_output" | grep "Listenport:" | awk '{print $2}')
+
+    if [ -z "$transmission_port" ]; then
+        echo "Could not parse Transmission listen port from output"
+        sleep 10
+        continue
+    fi
 
     if [ "$transmission_port" == "$gluetun_port" ]; then
         echo "Transmission port is already $gluetun_port"
@@ -17,7 +37,13 @@ while true; do
         continue
     fi
     
-    transmission-remote --auth $USER:$PASS --port $gluetun_port --torrent all --reannounce 2>&1
+    update_output=$(transmission-remote --auth $USER:$PASS --port $gluetun_port --torrent all --reannounce 2>&1)
+    if [ $? -ne 0 ]; then
+        echo "Failed to update Transmission port: $update_output"
+        sleep 10
+        continue
+    fi
+
     echo "Transmission port updated to $gluetun_port"
 
     sleep 60
