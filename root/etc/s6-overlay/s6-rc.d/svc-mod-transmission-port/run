@@ -1,5 +1,11 @@
 #!/usr/bin/with-contenv bash
 
+echo "Waiting for Transmission to be ready..."
+until transmission-remote --auth $USER:$PASS -si >/dev/null 2>&1; do
+    sleep 5
+done
+echo "Transmission is ready"
+
 while true; do
     gluetun_response=$(curl -s localhost:8000/v1/openvpn/portforwarded)
     if [ $? -ne 0 ]; then
@@ -23,10 +29,11 @@ while true; do
         continue
     fi
 
-    transmission_port=$(echo "$si_output" | grep "Listenport:" | awk '{print $2}')
+    transmission_port=$(echo "$si_output" | grep "Listen port:" | awk '{print $3}')
 
     if [ -z "$transmission_port" ]; then
-        echo "Failed to parse Transmission listen port"
+        echo "Failed to parse Transmission listen port, raw output:"
+        echo "$si_output"
         sleep 10
         continue
     fi
