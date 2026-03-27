@@ -11,7 +11,7 @@ while true; do
     gluetun_port=$(echo "$gluetun_response" | jq -r '.port')
 
     if [ -z "$gluetun_port" ] || [ "$gluetun_port" == "null" ] || [ "$gluetun_port" == "0" ]; then
-        echo "No valid port from Gluetun (got: $gluetun_port), retrying in 10 seconds"
+        echo "No valid port from Gluetun (got: $gluetun_port)"
         sleep 10
         continue
     fi
@@ -26,13 +26,13 @@ while true; do
     transmission_port=$(echo "$si_output" | grep "Listenport:" | awk '{print $2}')
 
     if [ -z "$transmission_port" ]; then
-        echo "Could not parse Transmission listen port from output"
+        echo "Failed to parse Transmission listen port"
         sleep 10
         continue
     fi
 
     if [ "$transmission_port" == "$gluetun_port" ]; then
-        echo "Transmission port is already $gluetun_port"
+        echo "Transmission port is already set to $gluetun_port"
         sleep 60
         continue
     fi
